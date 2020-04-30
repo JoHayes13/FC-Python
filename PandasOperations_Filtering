@@ -1,0 +1,70 @@
+import numpy as np
+import pandas as pd 
+
+data = pd.read_csv("players_20.csv")
+
+#Define function called club, that looks for a team name and return the selected columns
+
+def club(teamName):
+    return data[data['club'] == teamName][['short_name','wage_eur','value_eur','player_positions','overall','age']]
+
+club('Manchester United').sort_values("wage_eur", ascending = False)
+
+#Extract DDG's information, just like we did with the team name before
+DDG = data[data['short_name'] == 'De Gea'][['short_name','wage_eur','value_eur','player_positions','overall','age']]
+
+#Assign DDG's wage, position, rating and age to variables
+DDGWage = DDG['wage_eur'].item()
+DDGPos = DDG['player_positions'].item()
+DDGRating = DDG['overall'].item()
+DDGAge = DDG['age'].item()
+
+#Create a list of goalkeepers, matching DDG's position
+longlist = data[data['player_positions'] == DDGPos][['short_name','wage_eur','value_eur','player_positions','overall','age']]
+
+#Create a list of players that have a lower overall rank than DDG
+removals = longlist[longlist['overall'] <= DDGRating].index
+#Drop these players
+longlist.drop(removals , inplace=True)
+
+#Repeat above, but for players with a larger wage
+removals = longlist[longlist['wage_eur'] > DDGWage].index
+longlist.drop(removals , inplace=True)
+
+#Repeat above, but for older players
+removals = longlist[longlist['age'] >= DDGAge].index
+longlist.drop(removals , inplace=True)
+
+#Show me our potential replacements, sorted by lowest wages
+longlist.sort_values("wage_eur")
+
+def cheapReplacement(player, skillReduction = 0):
+    
+    #Get the replacee with the name provided in the argument
+    replacee = data[data['short_name'] == player][['short_name','wage_eur','value_eur','player_positions','overall','age']]
+    
+    #Assign the relevant details of this player to variables
+    replaceePos = replacee['player_positions'].item()
+    replaceeWage = replacee['wage_eur'].item()
+    replaceeAge = replacee['age'].item()
+    replaceeOverall = replacee['overall'].item() - skillReduction
+    
+    #Create the longlist of players that share the position
+    longlist = data[data['player_positions'] == replaceePos][['short_name','wage_eur','value_eur','player_positions','overall','age']]
+    
+    #Create list of players that do not meet the rating criteria and drop them from the longlist
+    removals = longlist[longlist['overall'] <= replaceeOverall].index
+    longlist.drop(removals , inplace=True)
+    
+    #Repeat for players with higher wages
+    removals = longlist[longlist['wage_eur'] > replaceeWage].index
+    longlist.drop(removals , inplace=True)
+
+    #Repeat for older players
+    removals = longlist[longlist['age'] >= replaceeAge].index
+    longlist.drop(removals , inplace=True)
+    
+    #Display the players that meet the requirements
+    return longlist.sort_values("wage_eur")
+    
+cheapReplacement('P. Pogba', 8)
